@@ -1,0 +1,5 @@
+All sprites created by (or adapted from art by) Kenney Vleugels (www.kenney.nl). (CC-By license).
+ball_bounce.wav - minerjr from freesound.org (CC-By license) 
+ball_hit.wav - Adapted from minjerjr from freesound.org (CC-By license)
+death.wav - autistic lucario from freesound.org (CC-By license)
+powerup.wav - altemark from freesound.org (CC-By license)
