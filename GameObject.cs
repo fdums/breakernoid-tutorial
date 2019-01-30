@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -16,16 +11,6 @@ namespace BreakernoidsGL
         protected Texture2D texture;
         protected Game game;
         public Vector2 position = Vector2.Zero;
-
-        public float Width
-        {
-            get { return texture.Width; }
-        }
-
-        public float Height
-        {
-            get { return texture.Height; }
-        }
 
         public GameObject(Game myGame)
         {
