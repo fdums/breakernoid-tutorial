@@ -21,6 +21,7 @@ namespace BreakernoidsGL
             if (keyState.IsKeyDown(Keys.Left))
             {
                 position.X -= speed * deltaTime;
+
             } else if (keyState.IsKeyDown(Keys.Right))
             {
                 position.X += speed * deltaTime;
@@ -30,6 +31,9 @@ namespace BreakernoidsGL
 
             }
 
+            position.X = MathHelper.Clamp(position.X,
+                              32 + texture.Width / 2,
+                              992 - texture.Width / 2);
             base.Update(deltaTime);
         }
     }

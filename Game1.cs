@@ -20,7 +20,14 @@ namespace BreakernoidsGL
         
         Texture2D bgTexture;
         Paddle paddle;
-        
+        Ball ball;
+        Vector2 initialPaddlePos;
+        Vector2 initialBallPos;
+        Vector2 initialBallDirection;
+        int allowCollision = 0;
+
+        List<Block> blocks = new List<Block>();
+
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
@@ -59,7 +66,25 @@ namespace BreakernoidsGL
             //initalizing Paddle
             paddle = new Paddle(this);
             paddle.LoadContent();
-            paddle.position = new Vector2(512, 740);
+            initialPaddlePos = new Vector2(512, 740);
+            paddle.position = initialPaddlePos;
+
+            //initializing Ball
+            ball = new Ball(this);
+            ball.LoadContent();
+            initialBallPos.X = initialPaddlePos.X;
+            initialBallPos.Y = (paddle.position.Y - ball.Height - paddle.Height);
+            initialBallDirection = ball.direction;
+            ball.position = initialBallPos;
+
+            //initializing Blocks
+            for (int i = 0; i < 15; i++)
+            {
+                Block tempBlock = new Block(this);
+                tempBlock.LoadContent();
+                tempBlock.position = new Vector2(64 + i * 64, 200);
+                blocks.Add(tempBlock);
+            }
 
         }
 
@@ -85,6 +110,9 @@ namespace BreakernoidsGL
             // TODO: Add your update logic here
             float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
             paddle.Update(deltaTime);
+            ball.Update(deltaTime);
+            CheckCollisions();
+            LoseLife();
             base.Update(gameTime);
         }
 
@@ -102,10 +130,84 @@ namespace BreakernoidsGL
             // Draw all sprites here
             spriteBatch.Draw(bgTexture, new Vector2(0, 0), Color.White);
             paddle.Draw(spriteBatch);
+            ball.Draw(spriteBatch);
+            foreach (Block b in blocks)
+            {
+                b.Draw(spriteBatch);
+            }
             spriteBatch.End();
 
             base.Draw(gameTime);
         }
-        
+
+        protected void CheckCollisions()
+        {
+            float radius = ball.Width / 2;
+
+            //collision with paddle
+            if ( allowCollision == 0 &
+                (ball.position.X > (paddle.position.X - radius - paddle.Width / 2)) &&
+                (ball.position.X < (paddle.position.X + radius + paddle.Width / 2)) &&
+                (ball.position.Y < paddle.position.Y) &&
+                (ball.position.Y > (paddle.position.Y - radius - paddle.Height / 2)))
+            {
+                //collision with paddle
+                float thirdOfPaddle = (paddle.Width + radius *2) / 3;
+                float leftCornerPaddle = paddle.position.X - paddle.Width / 2 - radius;
+
+                Vector2 reflectionVector;
+
+
+                if (ball.position.X < (leftCornerPaddle + thirdOfPaddle))
+                {
+                    reflectionVector =  new Vector2(-0.196f, -0.981f);
+
+                } else if (ball.position.X < (leftCornerPaddle + 2 * thirdOfPaddle))
+                {
+                    reflectionVector = new Vector2(0, -1);
+
+                } else
+                {
+                    reflectionVector = new Vector2(0.196f, -0.981f);
+
+                }
+
+                ball.direction = Vector2.Reflect(ball.direction, reflectionVector);
+                allowCollision = 20;
+            }
+            else if(allowCollision > 0)
+            {
+                allowCollision--;
+            }
+
+            //collision with walls
+            if ( Math.Abs(ball.position.X - 32) < radius)
+            {
+                // left wall collision
+                ball.direction.X = -ball.direction.X;
+            } 
+            else if ( Math.Abs(ball.position.X - 992) < radius)
+            {
+                //right wall collision
+                ball.direction.X = -ball.direction.X;
+            }
+            else if (Math.Abs(ball.position.Y - 32) < radius)
+            {
+                // top wall collision
+                ball.direction.Y = -ball.direction.Y;
+            }
+            else if (ball.position.Y > (768 + radius))
+            {
+                LoseLife();
+            }
+        }
+
+        protected void LoseLife()
+        {
+            paddle.position = initialPaddlePos;
+            ball.position = initialBallPos;
+            ball.direction = initialBallDirection;
+        }
+
     }
 }
