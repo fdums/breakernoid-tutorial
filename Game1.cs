@@ -26,7 +26,7 @@ namespace BreakernoidsGL
         Vector2 initialBallDirection;
         int allowCollision = 0;
 
-        List<Block> blocks = new List<Block>();
+       List<Block> blocks = new List<Block>();
 
         public Game1()
         {
@@ -86,6 +86,7 @@ namespace BreakernoidsGL
                 blocks.Add(tempBlock);
             }
 
+
         }
 
         /// <summary>
@@ -112,7 +113,6 @@ namespace BreakernoidsGL
             paddle.Update(deltaTime);
             ball.Update(deltaTime);
             CheckCollisions();
-            LoseLife();
             base.Update(gameTime);
         }
 
@@ -180,6 +180,37 @@ namespace BreakernoidsGL
                 allowCollision--;
             }
 
+            //collision with block
+            Block collidedBlock = null;
+            foreach (Block b in blocks)
+            {
+                if (ball.position.X > (b.position.X - radius - b.Width / 2) &&
+                 (ball.position.X < (b.position.X + radius + b.Width / 2)) &&
+                 (ball.position.Y < b.position.Y + radius + b.Height / 2) &&
+                 (ball.position.Y > (b.position.Y - radius - b.Height / 2)))
+                {
+                    collidedBlock = b;
+                    break;
+                }
+            }
+
+            if (collidedBlock != null)
+            {
+                if ((ball.position.Y < (collidedBlock.position.Y - collidedBlock.Height / 2)) ||
+                    (ball.position.Y > (collidedBlock.position.Y + collidedBlock.Height / 2)))
+                {
+                    ball.direction.Y = -ball.direction.Y;
+                }
+                else
+                {
+                    ball.direction.X = -ball.direction.X;
+                }
+            }
+
+            blocks.Remove(collidedBlock);
+
+            
+
             //collision with walls
             if ( Math.Abs(ball.position.X - 32) < radius)
             {
@@ -200,6 +231,8 @@ namespace BreakernoidsGL
             {
                 LoseLife();
             }
+
+
         }
 
         protected void LoseLife()
