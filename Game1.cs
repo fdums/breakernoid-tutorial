@@ -7,6 +7,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Audio;
 
 namespace BreakernoidsGL
 {
@@ -24,9 +25,25 @@ namespace BreakernoidsGL
         Vector2 initialPaddlePos;
         Vector2 initialBallPos;
         Vector2 initialBallDirection;
-        int allowCollision = 0;
+        SoundEffect ballBounceSFX;
+        SoundEffect ballHitSFX;
+        SoundEffect deathSFX;
+        Random random = new Random();
 
        List<Block> blocks = new List<Block>();
+       List<PowerUp> powerups = new List<PowerUp>();
+
+        double powerUpProb = 0.2;
+        int allowCollision = 0;
+        int[,] blockLayout = new int[,]{
+           {5,5,5,5,5,5,5,5,5,5,5,5,5,5,5},
+           {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+           {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+           {2,2,2,2,2,2,2,2,2,2,2,2,2,2,2},
+           {3,3,3,3,3,3,3,3,3,3,3,3,3,3,3},
+           {4,4,4,4,4,4,4,4,4,4,4,4,4,4,4},
+        };
+
 
         public Game1()
         {
@@ -78,15 +95,24 @@ namespace BreakernoidsGL
             ball.position = initialBallPos;
 
             //initializing Blocks
-            for (int i = 0; i < 15; i++)
+            for (int i = 0; i < blockLayout.GetLength(0); i++)
             {
-                Block tempBlock = new Block(this);
-                tempBlock.LoadContent();
-                tempBlock.position = new Vector2(64 + i * 64, 200);
-                blocks.Add(tempBlock);
-            }
+                for (int j = 0; j < blockLayout.GetLength(1); j++)
+                {
+                    BlockColor color = (BlockColor) blockLayout[i, j];
+                    Block tempBlock = new Block(color, this);
+                    tempBlock.LoadContent();
+                    tempBlock.position = new Vector2(64 + j * 64, 100 + i * 32);
+                    blocks.Add(tempBlock);
 
 
+                };
+            };
+
+            //soundeffects
+            ballBounceSFX = Content.Load<SoundEffect>("ball_bounce");
+            ballHitSFX = Content.Load<SoundEffect>("ball_hit");
+            deathSFX = Content.Load<SoundEffect>("death");
         }
 
         /// <summary>
@@ -112,7 +138,12 @@ namespace BreakernoidsGL
             float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
             paddle.Update(deltaTime);
             ball.Update(deltaTime);
+            foreach (PowerUp p in powerups)
+            {
+                p.Update(deltaTime);
+            }
             CheckCollisions();
+            removePowerUp();
             base.Update(gameTime);
         }
 
@@ -134,6 +165,10 @@ namespace BreakernoidsGL
             foreach (Block b in blocks)
             {
                 b.Draw(spriteBatch);
+            }
+            foreach (PowerUp p in powerups)
+            {
+                p.Draw(spriteBatch);
             }
             spriteBatch.End();
 
@@ -174,6 +209,7 @@ namespace BreakernoidsGL
 
                 ball.direction = Vector2.Reflect(ball.direction, reflectionVector);
                 allowCollision = 20;
+                ballBounceSFX.Play();
             }
             else if(allowCollision > 0)
             {
@@ -205,31 +241,44 @@ namespace BreakernoidsGL
                 {
                     ball.direction.X = -ball.direction.X;
                 }
+
+                ballHitSFX.Play();
+
+                if (collidedBlock.OnHit(collidedBlock))
+                {
+                    blocks.Remove(collidedBlock);
+
+                    if (random.NextDouble() < powerUpProb)
+                    {
+                        SpawnPowerUp(collidedBlock.position);
+                    }
+                }
+
             }
-
-            blocks.Remove(collidedBlock);
-
-            
 
             //collision with walls
             if ( Math.Abs(ball.position.X - 32) < radius)
             {
                 // left wall collision
                 ball.direction.X = -ball.direction.X;
+                ballBounceSFX.Play();
             } 
             else if ( Math.Abs(ball.position.X - 992) < radius)
             {
                 //right wall collision
                 ball.direction.X = -ball.direction.X;
+                ballBounceSFX.Play();
             }
             else if (Math.Abs(ball.position.Y - 32) < radius)
             {
                 // top wall collision
                 ball.direction.Y = -ball.direction.Y;
+                ballBounceSFX.Play();
             }
             else if (ball.position.Y > (768 + radius))
             {
                 LoseLife();
+                deathSFX.Play();
             }
 
 
@@ -240,6 +289,27 @@ namespace BreakernoidsGL
             paddle.position = initialPaddlePos;
             ball.position = initialBallPos;
             ball.direction = initialBallDirection;
+        }
+
+        protected void SpawnPowerUp (Vector2 position)
+        {
+            PowerUpType type = (PowerUpType) random.Next(3);
+            PowerUp tempPowerUp = new PowerUp(type, this);
+            tempPowerUp.position = position;
+            tempPowerUp.LoadContent();
+            powerups.Add(tempPowerUp);
+
+        }
+
+        protected void removePowerUp ()
+        {
+            for (int i = powerups.Count - 1; i >= 0; i--)
+            {
+                if (powerups[i].offScreen)
+                {
+                    powerups.RemoveAt(i);
+                }
+            }
         }
 
     }
