@@ -36,6 +36,13 @@ namespace BreakernoidsGL
                               992 - texture.Width / 2);
             base.Update(deltaTime);
         }
+
+
+        public void ChangePaddleSize (string textureName)
+        {
+            this.textureName = textureName;
+            LoadContent();
+        }
     }
 
 }

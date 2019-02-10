@@ -17,6 +17,7 @@ namespace BreakernoidsGL
     {
         public float speed = 400;
         public bool offScreen = false;
+        public PowerUpType type;
 
         public PowerUp(PowerUpType type, Game myGame) : base(myGame)
         {
@@ -24,12 +25,15 @@ namespace BreakernoidsGL
             {
                 case PowerUpType.BallCatch:
                     textureName = "powerup_c";
+                    this.type = type;
                     break;
                 case PowerUpType.MultiBall:
                     textureName = "powerup_b";
+                    this.type = type;
                     break;
                 case PowerUpType.PaddleSize:
                     textureName = "powerup_p";
+                    this.type = type;
                     break;
             }
         }

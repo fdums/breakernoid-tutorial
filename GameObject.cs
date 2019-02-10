@@ -11,6 +11,11 @@ namespace BreakernoidsGL
         protected Texture2D texture;
         protected Game game;
         public Vector2 position = Vector2.Zero;
+        public Rectangle BoundingRect
+        {
+            get { return new Rectangle((int) position.X, (int) position.Y,
+            texture.Width, texture.Height); }
+        }
 
         public float Width
         {

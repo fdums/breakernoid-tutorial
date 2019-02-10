@@ -21,20 +21,20 @@ namespace BreakernoidsGL
         
         Texture2D bgTexture;
         Paddle paddle;
-        Ball ball;
         Vector2 initialPaddlePos;
-        Vector2 initialBallPos;
-        Vector2 initialBallDirection;
+
         SoundEffect ballBounceSFX;
         SoundEffect ballHitSFX;
         SoundEffect deathSFX;
+        SoundEffect powerUpSFX;
+
         Random random = new Random();
 
-       List<Block> blocks = new List<Block>();
-       List<PowerUp> powerups = new List<PowerUp>();
+        List<Block> blocks = new List<Block>();
+        List<PowerUp> powerups = new List<PowerUp>();
+        List<Ball> balls = new List<Ball>();
 
         double powerUpProb = 0.2;
-        int allowCollision = 0;
         int[,] blockLayout = new int[,]{
            {5,5,5,5,5,5,5,5,5,5,5,5,5,5,5},
            {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
@@ -44,6 +44,7 @@ namespace BreakernoidsGL
            {4,4,4,4,4,4,4,4,4,4,4,4,4,4,4},
         };
 
+        public bool ballCatchActive = false;
 
         public Game1()
         {
@@ -86,14 +87,6 @@ namespace BreakernoidsGL
             initialPaddlePos = new Vector2(512, 740);
             paddle.position = initialPaddlePos;
 
-            //initializing Ball
-            ball = new Ball(this);
-            ball.LoadContent();
-            initialBallPos.X = initialPaddlePos.X;
-            initialBallPos.Y = (paddle.position.Y - ball.Height - paddle.Height);
-            initialBallDirection = ball.direction;
-            ball.position = initialBallPos;
-
             //initializing Blocks
             for (int i = 0; i < blockLayout.GetLength(0); i++)
             {
@@ -104,8 +97,6 @@ namespace BreakernoidsGL
                     tempBlock.LoadContent();
                     tempBlock.position = new Vector2(64 + j * 64, 100 + i * 32);
                     blocks.Add(tempBlock);
-
-
                 };
             };
 
@@ -113,6 +104,7 @@ namespace BreakernoidsGL
             ballBounceSFX = Content.Load<SoundEffect>("ball_bounce");
             ballHitSFX = Content.Load<SoundEffect>("ball_hit");
             deathSFX = Content.Load<SoundEffect>("death");
+            powerUpSFX = Content.Load<SoundEffect>("powerup");
         }
 
         /// <summary>
@@ -136,14 +128,28 @@ namespace BreakernoidsGL
 
             // TODO: Add your update logic here
             float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
+            float paddleXBefore = paddle.position.X;
             paddle.Update(deltaTime);
-            ball.Update(deltaTime);
+            float paddelXDiff = paddleXBefore - paddle.position.X;
+
+            foreach (Ball b in balls)
+            {
+                if (b.caught)
+                {
+                    b.position.X -= paddelXDiff;
+                }
+                b.Update(deltaTime);
+                CheckCollisions(b);
+            }
+            RemoveBalls();
+
             foreach (PowerUp p in powerups)
             {
                 p.Update(deltaTime);
             }
-            CheckCollisions();
-            removePowerUp();
+     
+            CheckForPowerups();
+            RemovePowerUp();
             base.Update(gameTime);
         }
 
@@ -161,7 +167,11 @@ namespace BreakernoidsGL
             // Draw all sprites here
             spriteBatch.Draw(bgTexture, new Vector2(0, 0), Color.White);
             paddle.Draw(spriteBatch);
-            ball.Draw(spriteBatch);
+            foreach (Ball ba in balls)
+            {
+                ba.Draw(spriteBatch);
+            }
+
             foreach (Block b in blocks)
             {
                 b.Draw(spriteBatch);
@@ -175,16 +185,16 @@ namespace BreakernoidsGL
             base.Draw(gameTime);
         }
 
-        protected void CheckCollisions()
+        protected void CheckCollisions(Ball currentBall)
         {
-            float radius = ball.Width / 2;
+            float radius = currentBall.Width / 2;
 
             //collision with paddle
-            if ( allowCollision == 0 &
-                (ball.position.X > (paddle.position.X - radius - paddle.Width / 2)) &&
-                (ball.position.X < (paddle.position.X + radius + paddle.Width / 2)) &&
-                (ball.position.Y < paddle.position.Y) &&
-                (ball.position.Y > (paddle.position.Y - radius - paddle.Height / 2)))
+            if (currentBall.allowCollision == 0 &
+                (currentBall.position.X > (paddle.position.X - radius - paddle.Width / 2)) &&
+                (currentBall.position.X < (paddle.position.X + radius + paddle.Width / 2)) &&
+                (currentBall.position.Y < paddle.position.Y) &&
+                (currentBall.position.Y > (paddle.position.Y - radius - paddle.Height / 2)))
             {
                 //collision with paddle
                 float thirdOfPaddle = (paddle.Width + radius *2) / 3;
@@ -193,11 +203,11 @@ namespace BreakernoidsGL
                 Vector2 reflectionVector;
 
 
-                if (ball.position.X < (leftCornerPaddle + thirdOfPaddle))
+                if (currentBall.position.X < (leftCornerPaddle + thirdOfPaddle))
                 {
                     reflectionVector =  new Vector2(-0.196f, -0.981f);
 
-                } else if (ball.position.X < (leftCornerPaddle + 2 * thirdOfPaddle))
+                } else if (currentBall.position.X < (leftCornerPaddle + 2 * thirdOfPaddle))
                 {
                     reflectionVector = new Vector2(0, -1);
 
@@ -207,23 +217,33 @@ namespace BreakernoidsGL
 
                 }
 
-                ball.direction = Vector2.Reflect(ball.direction, reflectionVector);
-                allowCollision = 20;
+                if (ballCatchActive)
+                {
+                    currentBall.caught = true;
+
+                    if (currentBall.position.X < paddle.Width/2)
+                    {
+                        currentBall.direction = new Vector2(-0.707f, -0.707f);
+                    }
+                    else
+                    {
+                        currentBall.direction = new Vector2(0.707f, -0.707f);
+                    }
+
+                }
+                currentBall.direction = Vector2.Reflect(currentBall.direction, reflectionVector);
+                currentBall.allowCollision = 20;
                 ballBounceSFX.Play();
-            }
-            else if(allowCollision > 0)
-            {
-                allowCollision--;
             }
 
             //collision with block
             Block collidedBlock = null;
             foreach (Block b in blocks)
             {
-                if (ball.position.X > (b.position.X - radius - b.Width / 2) &&
-                 (ball.position.X < (b.position.X + radius + b.Width / 2)) &&
-                 (ball.position.Y < b.position.Y + radius + b.Height / 2) &&
-                 (ball.position.Y > (b.position.Y - radius - b.Height / 2)))
+                if (currentBall.position.X > (b.position.X - radius - b.Width / 2) &&
+                 (currentBall.position.X < (b.position.X + radius + b.Width / 2)) &&
+                 (currentBall.position.Y < b.position.Y + radius + b.Height / 2) &&
+                 (currentBall.position.Y > (b.position.Y - radius - b.Height / 2)))
                 {
                     collidedBlock = b;
                     break;
@@ -232,14 +252,14 @@ namespace BreakernoidsGL
 
             if (collidedBlock != null)
             {
-                if ((ball.position.Y < (collidedBlock.position.Y - collidedBlock.Height / 2)) ||
-                    (ball.position.Y > (collidedBlock.position.Y + collidedBlock.Height / 2)))
+                if ((currentBall.position.Y < (collidedBlock.position.Y - collidedBlock.Height / 2)) ||
+                    (currentBall.position.Y > (collidedBlock.position.Y + collidedBlock.Height / 2)))
                 {
-                    ball.direction.Y = -ball.direction.Y;
+                    currentBall.direction.Y = -currentBall.direction.Y;
                 }
                 else
                 {
-                    ball.direction.X = -ball.direction.X;
+                    currentBall.direction.X = -currentBall.direction.X;
                 }
 
                 ballHitSFX.Play();
@@ -257,27 +277,27 @@ namespace BreakernoidsGL
             }
 
             //collision with walls
-            if ( Math.Abs(ball.position.X - 32) < radius)
+            if ( Math.Abs(currentBall.position.X - 32) < radius)
             {
                 // left wall collision
-                ball.direction.X = -ball.direction.X;
+                currentBall.direction.X = -currentBall.direction.X;
                 ballBounceSFX.Play();
             } 
-            else if ( Math.Abs(ball.position.X - 992) < radius)
+            else if ( Math.Abs(currentBall.position.X - 992) < radius)
             {
                 //right wall collision
-                ball.direction.X = -ball.direction.X;
+                currentBall.direction.X = -currentBall.direction.X;
                 ballBounceSFX.Play();
             }
-            else if (Math.Abs(ball.position.Y - 32) < radius)
+            else if (Math.Abs(currentBall.position.Y - 32) < radius)
             {
                 // top wall collision
-                ball.direction.Y = -ball.direction.Y;
+                currentBall.direction.Y = -currentBall.direction.Y;
                 ballBounceSFX.Play();
             }
-            else if (ball.position.Y > (768 + radius))
+            else if (currentBall.position.Y > (768 + radius))
             {
-                LoseLife();
+                currentBall.shouldRemove = true;
                 deathSFX.Play();
             }
 
@@ -287,8 +307,10 @@ namespace BreakernoidsGL
         protected void LoseLife()
         {
             paddle.position = initialPaddlePos;
-            ball.position = initialBallPos;
-            ball.direction = initialBallDirection;
+            SpawnBall();
+            ballCatchActive = false;
+            paddle.ChangePaddleSize("paddle");
+
         }
 
         protected void SpawnPowerUp (Vector2 position)
@@ -301,14 +323,72 @@ namespace BreakernoidsGL
 
         }
 
-        protected void removePowerUp ()
+        protected void RemovePowerUp ()
         {
             for (int i = powerups.Count - 1; i >= 0; i--)
             {
-                if (powerups[i].offScreen)
+                if (powerups[i].shouldRemove)
                 {
                     powerups.RemoveAt(i);
                 }
+            }
+        }
+
+        protected void CheckForPowerups ()
+        {
+            foreach (PowerUp p in powerups)
+            {
+                if (paddle.BoundingRect.Intersects(p.BoundingRect))
+                {
+                    ActivatePowerUp(p);
+                }
+            }
+
+        }
+
+        protected void ActivatePowerUp (PowerUp powerUp)
+        {
+            powerUp.shouldRemove = true;
+            powerUpSFX.Play();
+
+            switch (powerUp.type)
+            {
+                case PowerUpType.BallCatch:
+                    ballCatchActive = true;
+                    break;
+                case PowerUpType.MultiBall:
+                    paddle.ChangePaddleSize("paddle_long");
+                    break;
+                case PowerUpType.PaddleSize:
+                    SpawnBall();
+                    break;
+            }
+
+        }
+
+        protected void SpawnBall ()
+        {
+            Ball tempBall = new Ball(this);
+            tempBall.LoadContent();
+            tempBall.position = paddle.position;
+            tempBall.position.Y -= tempBall.Height + paddle.Height;
+
+            balls.Add(tempBall);
+        }
+
+        protected void RemoveBalls()
+        {
+            for (int i = balls.Count - 1; i >= 0; i--)
+            {
+                if (balls[i].shouldRemove)
+                {
+                    balls.RemoveAt(i);
+                }
+            }
+
+            if (balls.Count == 0)
+            {
+                LoseLife();
             }
         }
 
