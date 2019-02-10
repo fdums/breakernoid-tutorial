@@ -16,7 +16,7 @@ namespace BreakernoidsGL
     public class PowerUp : GameObject
     {
         public float speed = 400;
-        public bool offScreen = false;
+        public bool shouldRemove = false;
         public PowerUpType type;
 
         public PowerUp(PowerUpType type, Game myGame) : base(myGame)
@@ -43,7 +43,7 @@ namespace BreakernoidsGL
             position.Y +=  speed * deltaTime;
             if (position.Y > 768)
             {
-                offScreen = true;
+                shouldRemove = true;
             }
             base.Update(deltaTime);
         }
