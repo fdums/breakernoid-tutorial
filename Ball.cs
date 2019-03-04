@@ -37,6 +37,7 @@ namespace BreakernoidsGL
                 if (keyState.IsKeyDown(Keys.Space))
                 {
                     caught = false;
+                    direction = direction * -1;
                 }
             }
             base.Update(deltaTime);
