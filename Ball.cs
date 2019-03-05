@@ -20,7 +20,6 @@ namespace BreakernoidsGL
             textureName = "ball";
         }
 
-
         public override void Update(float deltaTime)
         {
             if (!caught)
@@ -37,7 +36,6 @@ namespace BreakernoidsGL
                 if (keyState.IsKeyDown(Keys.Space))
                 {
                     caught = false;
-                    direction = direction * -1;
                 }
             }
             base.Update(deltaTime);
